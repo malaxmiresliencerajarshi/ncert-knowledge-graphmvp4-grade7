@@ -27,6 +27,23 @@ activities = data.get("activities", [])
 concept_names = {c["concept_name"] for c in concepts}
 
 # --------------------------------------------------
+# Strictly clean activities (FINAL)
+# --------------------------------------------------
+raw_activities = data.get("activities", [])
+
+clean_activities = []
+for i, a in enumerate(raw_activities):
+    if not isinstance(a, dict):
+        continue
+    if "activity_name" not in a:
+        continue
+    if "parent_concept" not in a:
+        continue
+    clean_activities.append(a)
+
+activities = clean_activities
+
+# --------------------------------------------------
 # Sidebar – Concept details
 # --------------------------------------------------
 st.sidebar.header("🔍 Concept Details")
@@ -78,27 +95,21 @@ else:
 st.sidebar.markdown("---")
 st.sidebar.header("🧪 Data Check")
 
-concept_names = {c["concept_name"] for c in concepts}
-
-unlinked_activities = []
-for activity in activities:
-    parent = activity.get("parent_concept")
-    if parent not in concept_names:
-        unlinked_activities.append(activity)
+unlinked_activities = [
+    a for a in activities
+    if a["parent_concept"] not in concept_names
+]
 
 if unlinked_activities:
     st.sidebar.warning("Activities NOT linked to any concept")
-    for activity in unlinked_activities:
-        name = activity.get("activity_name", "❌ Missing activity_name")
-        parent = activity.get("parent_concept", "❌ missing")
-        st.sidebar.write(f"• {name} (parent → {parent})")
+    for a in unlinked_activities:
+        st.sidebar.write(
+            f"• {a['activity_name']} (parent → {a['parent_concept']})"
+        )
 else:
     st.sidebar.success("All activities are properly linked")
-st.sidebar.markdown("### 🔎 Raw Activity Debug (TEMP)")
-for i, activity in enumerate(activities):
-    if not isinstance(activity, dict) or not activity:
-        st.sidebar.write(f"Index {i}: {activity}")
-
+st.sidebar.markdown("### 🔎 Activity Type Check")
+st.sidebar.write([type(a) for a in activities][:10])
 
 # --------------------------------------------------
 # Build graph (Tier-3 concepts only)
@@ -146,5 +157,6 @@ selected = agraph(
 
 # Always overwrite selection (prevents sticky state)
 st.session_state["selected_concept"] = selected
+
 
 
