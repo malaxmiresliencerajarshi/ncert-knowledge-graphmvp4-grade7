@@ -73,25 +73,28 @@ else:
     st.sidebar.info("Click a concept node to view details.")
 
 # --------------------------------------------------
-# Sidebar – Data Quality Check
+# Sidebar – Data Quality Check (SAFE)
 # --------------------------------------------------
 st.sidebar.markdown("---")
 st.sidebar.header("🧪 Data Check")
 
-unlinked_activities = [
-    a for a in activities
-    if a.get("parent_concept") not in concept_names
-]
+concept_names = {c["concept_name"] for c in concepts}
+
+unlinked_activities = []
+for activity in activities:
+    parent = activity.get("parent_concept")
+    if parent not in concept_names:
+        unlinked_activities.append(activity)
 
 if unlinked_activities:
     st.sidebar.warning("Activities NOT linked to any concept")
-    for a in unlinked_activities:
-        st.sidebar.write(
-            f"• {a.get('activity_name')} "
-            f"(parent → {a.get('parent_concept', '❌ missing')})"
-        )
+    for activity in unlinked_activities:
+        name = activity.get("activity_name", "❌ Missing activity_name")
+        parent = activity.get("parent_concept", "❌ missing")
+        st.sidebar.write(f"• {name} (parent → {parent})")
 else:
     st.sidebar.success("All activities are properly linked")
+
 
 # --------------------------------------------------
 # Build graph (Tier-3 concepts only)
@@ -139,3 +142,4 @@ selected = agraph(
 
 # Always overwrite selection (prevents sticky state)
 st.session_state["selected_concept"] = selected
+
