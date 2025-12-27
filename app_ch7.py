@@ -61,7 +61,7 @@ nodes = []
 for domain in domains:
     nodes.append(
         Node(
-            id=domain,
+            id=f"domain::{domain}",
             label=domain,
             size=45,
             color=DOMAIN_COLORS.get(domain, "#999999"),
@@ -74,7 +74,7 @@ for domain in domains:
 for (domain, strand) in strands:
     nodes.append(
         Node(
-            id=strand,
+            id=f"strand::{strand}",
             label=strand,
             size=30,
             color=DOMAIN_COLORS.get(domain, "#bbbbbb"),
@@ -87,7 +87,7 @@ for (domain, strand) in strands:
 for c in concepts:
     nodes.append(
         Node(
-            id=c["concept_name"],
+            id=f"concept::{c['concept_name']}",
             label=c["concept_name"],
             size=18,
             color=DOMAIN_COLORS.get(c["domain"], "#cccccc"),
@@ -104,14 +104,22 @@ edges = []
 for domain, strand_list in domains.items():
     for strand in strand_list:
         edges.append(
-            Edge(source=domain, target=strand, color="#cccccc")
+            Edge(
+    source=f"domain::{domain}",
+    target=f"strand::{strand}",
+    color="#cccccc"
+)
         )
 
 # Strand → Concept
 for (domain, strand), concept_list in strands.items():
     for concept in concept_list:
         edges.append(
-            Edge(source=strand, target=concept, color="#dddddd")
+           Edge(
+    source=f"strand::{strand}",
+    target=f"concept::{concept}",
+    color="#dddddd"
+)
         )
 
 # Concept ↔ Concept (interconnections)
@@ -120,10 +128,10 @@ for c in concepts:
         if linked in concept_names:
             edges.append(
                 Edge(
-                    source=c["concept_name"],
-                    target=linked,
-                    color="#ff9999"
-                )
+    source=f"concept::{c['concept_name']}",
+    target=f"concept::{linked}",
+    color="#ff9999"
+)
             )
 
 # ----------------------------
@@ -159,8 +167,8 @@ elif isinstance(selected, list) and selected:
 elif isinstance(selected, str):
     clicked = selected
 
-if clicked in concept_names:
-    st.session_state.selected_concept = clicked
+if isinstance(clicked, str) and clicked.startswith("concept::"):
+    st.session_state.selected_concept = clicked.replace("concept::", "")
 
 # ----------------------------
 # Sidebar — Concept Details
@@ -219,4 +227,5 @@ if selected_concept:
 
 else:
     st.sidebar.info("Click a concept node to view details.")
+
 
