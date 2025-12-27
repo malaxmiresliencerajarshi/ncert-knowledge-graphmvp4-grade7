@@ -88,6 +88,26 @@ if unlinked_activities:
         st.sidebar.write(f"• {a.get('activity_name', 'Unnamed activity')}")
 
 # --------------------------------------------------
+# Sidebar: Unlinked activities (Data Quality Check)
+# --------------------------------------------------
+st.sidebar.markdown("---")
+st.sidebar.header("🧪 Data Check")
+
+unlinked_activities = [
+    a for a in activities
+    if not a.get("parent_concept")
+    or a.get("parent_concept") not in {c["concept_name"] for c in concepts}
+]
+
+if unlinked_activities:
+    st.sidebar.markdown("⚠️ **Activities NOT linked to any concept**")
+    for a in unlinked_activities:
+        st.sidebar.write(f"• {a.get('activity_name', 'Unnamed activity')}")
+else:
+    st.sidebar.success("All activities are linked to concepts ✅")
+
+
+# --------------------------------------------------
 # Build graph
 # --------------------------------------------------
 nodes = []
@@ -132,3 +152,4 @@ selected = agraph(
 
 if selected:
     st.session_state["selected_concept"] = selected
+
