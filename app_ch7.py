@@ -3,7 +3,7 @@ import streamlit as st
 from streamlit_agraph import agraph, Node, Edge, Config
 
 # --------------------------------------------------
-# Page config
+# Page configuration
 # --------------------------------------------------
 st.set_page_config(
     page_title="NCERT Grade 7 Knowledge Graph",
@@ -24,16 +24,18 @@ data = load_data()
 concepts = data.get("concepts", [])
 activities = data.get("activities", [])
 
+concept_names = {c["concept_name"] for c in concepts}
+
 # --------------------------------------------------
-# Sidebar: Concept details
+# Sidebar – Concept details
 # --------------------------------------------------
 st.sidebar.header("🔍 Concept Details")
 
 selected_concept = st.session_state.get("selected_concept")
 
-if selected_concept:
+if selected_concept is not None:
     concept = next(
-        (c for c in concepts if c.get("concept_name") == selected_concept),
+        (c for c in concepts if c["concept_name"] == selected_concept),
         None
     )
 
@@ -54,19 +56,16 @@ if selected_concept:
         st.sidebar.markdown("**Cognitive Level**")
         st.sidebar.write(concept.get("cognitive_level", "—"))
 
-        # ------------------------------
-        # Linked activities (SAFE)
-        # ------------------------------
-        st.sidebar.markdown("**Activities linked to this concept**")
-
-        related_activities = [
+        # Linked activities
+        st.sidebar.markdown("**Activities**")
+        linked_activities = [
             a for a in activities
             if a.get("parent_concept") == selected_concept
         ]
 
-        if related_activities:
-            for a in related_activities:
-                st.sidebar.write(f"• {a.get('activity_name', 'Unnamed activity')}")
+        if linked_activities:
+            for a in linked_activities:
+                st.sidebar.write(f"• {a.get('activity_name')}")
         else:
             st.sidebar.write("No activities linked.")
 
@@ -74,41 +73,28 @@ else:
     st.sidebar.info("Click a concept node to view details.")
 
 # --------------------------------------------------
-# Sidebar: Unlinked activities (DATA QA)
-# --------------------------------------------------
-unlinked_activities = [
-    a for a in activities if not a.get("parent_concept")
-]
-
-if unlinked_activities:
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("⚠️ **Activities missing parent concept**")
-
-    for a in unlinked_activities:
-        st.sidebar.write(f"• {a.get('activity_name', 'Unnamed activity')}")
-
-# --------------------------------------------------
-# Sidebar: Unlinked activities (Data Quality Check)
+# Sidebar – Data Quality Check
 # --------------------------------------------------
 st.sidebar.markdown("---")
 st.sidebar.header("🧪 Data Check")
 
 unlinked_activities = [
     a for a in activities
-    if not a.get("parent_concept")
-    or a.get("parent_concept") not in {c["concept_name"] for c in concepts}
+    if a.get("parent_concept") not in concept_names
 ]
 
 if unlinked_activities:
-    st.sidebar.markdown("⚠️ **Activities NOT linked to any concept**")
+    st.sidebar.warning("Activities NOT linked to any concept")
     for a in unlinked_activities:
-        st.sidebar.write(f"• {a.get('activity_name', 'Unnamed activity')}")
+        st.sidebar.write(
+            f"• {a.get('activity_name')} "
+            f"(parent → {a.get('parent_concept', '❌ missing')})"
+        )
 else:
-    st.sidebar.success("All activities are linked to concepts ✅")
-
+    st.sidebar.success("All activities are properly linked")
 
 # --------------------------------------------------
-# Build graph
+# Build graph (Tier-3 concepts only)
 # --------------------------------------------------
 nodes = []
 edges = []
@@ -124,12 +110,13 @@ for c in concepts:
     )
 
     for linked in c.get("interconnections", []):
-        edges.append(
-            Edge(
-                source=c["concept_name"],
-                target=linked
+        if linked in concept_names:
+            edges.append(
+                Edge(
+                    source=c["concept_name"],
+                    target=linked
+                )
             )
-        )
 
 config = Config(
     width=1200,
@@ -150,6 +137,5 @@ selected = agraph(
     config=config
 )
 
-if selected:
-    st.session_state["selected_concept"] = selected
-
+# Always overwrite selection (prevents sticky state)
+st.session_state["selected_concept"] = selected
